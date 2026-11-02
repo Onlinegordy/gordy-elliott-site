@@ -161,3 +161,17 @@ test('paused Garmin and reason transitions are wired through server and visible 
  const html=renderToStaticMarkup(React.createElement(Panel,{connections:[],consentAccepted:true,available:true,mockMode:false,whoopAvailable:false,garminAvailable:false,connecting:null,disconnecting:null,onConsentChange:()=>{},onConnect:()=>{},onDisconnect:()=>{},onBack:()=>{}}));
  assert.match(html,/Garmin has paused new third-party connections/);
 });
+
+test("native connection failures do not claim provider refusal in the visible connection card", async () => {
+ Object.assign(globalThis, { React });
+ const { default: Panel } = await import("@/components/portal/WearableConnectionsPanel");
+ for (const provider of ["apple", "healthconnect", "fitbit"]) {
+  const connection = { id: "failed", client_id: "demo", provider, status: "error" as const, terra_user_id: null, reference_id: "client:demo", last_sync_at: null, connected_at: null, disconnected_at: null, failure_reason: "widget_return_failed" };
+  const html = renderToStaticMarkup(React.createElement(Panel, { connections: [connection], nativeHealth: provider === "healthconnect" ? "healthconnect" : "apple", consentAccepted: true, available: true, mockMode: false, whoopAvailable: false, connecting: null, disconnecting: null, onConsentChange: () => {}, onConnect: () => {}, onDisconnect: () => {}, onBack: () => {} }));
+  if (provider === "fitbit") assert.match(html, /The provider did not approve the connection/);
+  else {
+   assert.match(html, /The health connection wasn/);
+   assert.doesNotMatch(html, /The provider did not approve the connection/);
+  }
+ }
+});
