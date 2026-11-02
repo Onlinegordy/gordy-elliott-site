@@ -139,7 +139,7 @@ function LoginForm() {
                   onChange={(e) => setResetEmail(e.target.value)}
                   required
                   autoComplete="email"
-                  className="w-full h-11 bg-bg-primary border border-[rgba(0,0,0,0.08)] rounded-xl px-4 text-text-primary text-sm focus:outline-none focus:border-accent/40 transition-colors"
+                  className="w-full h-11 bg-bg-primary border border-[rgba(0,0,0,0.08)] rounded-xl px-4 text-text-primary text-base sm:text-sm focus:outline-none focus:border-accent/40 transition-colors"
                 />
               </div>
 
@@ -161,7 +161,7 @@ function LoginForm() {
                   onChange={(e) => setEmail(e.target.value)}
                   required
                   autoComplete="email"
-                  className="w-full h-11 bg-bg-primary border border-[rgba(0,0,0,0.08)] rounded-xl px-4 text-text-primary text-sm focus:outline-none focus:border-accent/40 transition-colors"
+                  className="w-full h-11 bg-bg-primary border border-[rgba(0,0,0,0.08)] rounded-xl px-4 text-text-primary text-base sm:text-sm focus:outline-none focus:border-accent/40 transition-colors"
                 />
               </div>
 
@@ -173,7 +173,7 @@ function LoginForm() {
                   onChange={(e) => setPassword(e.target.value)}
                   required
                   autoComplete="current-password"
-                  className="w-full h-11 bg-bg-primary border border-[rgba(0,0,0,0.08)] rounded-xl px-4 text-text-primary text-sm focus:outline-none focus:border-accent/40 transition-colors"
+                  className="w-full h-11 bg-bg-primary border border-[rgba(0,0,0,0.08)] rounded-xl px-4 text-text-primary text-base sm:text-sm focus:outline-none focus:border-accent/40 transition-colors"
                 />
               </div>
 

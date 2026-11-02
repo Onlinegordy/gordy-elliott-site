@@ -1,6 +1,6 @@
 "use client";
 
-import { connectionFailureCopy } from "@/lib/terra/connection-copy";
+import { connectionFailureMessage } from "@/lib/terra/connection-copy";
 import Image from "next/image";
 import Link from "next/link";
 import CyclingStatusText from "@/components/ui/CyclingStatusText";
@@ -118,7 +118,7 @@ export default function WearableConnectionsPanel({
     .sort((a, b) => b.localeCompare(a))[0];
 
   return (
-    <div className="mx-auto w-full max-w-5xl pb-28 sm:pb-8">
+    <div className="mx-auto w-full min-w-0 max-w-5xl pb-28 sm:pb-8">
       <header className="flex items-start gap-4">
         <button
           type="button"
@@ -130,7 +130,7 @@ export default function WearableConnectionsPanel({
             <path d="m15 18-6-6 6-6" strokeLinecap="round" strokeLinejoin="round" />
           </svg>
         </button>
-        <div>
+        <div className="min-w-0 flex-1">
           <div className="text-[11px] font-semibold uppercase tracking-[0.22em] text-[#ef68db]">Health data</div>
           <h1 className="mt-1 font-heading text-[2.1rem] font-bold leading-none tracking-[-0.02em] text-white sm:text-[2.6rem]">Connections</h1>
           <p className="mt-2 max-w-2xl text-sm leading-6 text-white/52">
@@ -181,7 +181,7 @@ export default function WearableConnectionsPanel({
                 <path d="m9 12 2 2 4-4" strokeLinecap="round" strokeLinejoin="round" />
               </svg>
             </div>
-            <div>
+            <div className="min-w-0 flex-1">
               <h2 id="health-consent-heading" className="text-lg font-semibold tracking-tight text-white">Your permission comes first</h2>
               <p className="mt-1 text-sm leading-6 text-white/52">
                 Terra securely passes the health categories you approve to AT CAPACITY. Gordy uses them for coaching context;
@@ -197,7 +197,7 @@ export default function WearableConnectionsPanel({
               aria-describedby="health-consent-status"
               className="mt-0.5 h-5 w-5 shrink-0 accent-[#e440d0] focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-[#ef68db]"
             />
-            <span className="text-sm font-medium leading-6 text-white/76">
+            <span className="min-w-0 flex-1 text-sm font-medium leading-6 text-white/76">
               I consent to AT CAPACITY receiving health data from the service I choose. I have read the{" "}
               <Link href="/privacy" className="text-[#ef68db] underline underline-offset-2">Privacy Notice</Link>
               {" "}and{" "}
@@ -292,7 +292,7 @@ function ProviderRow({
           <p className="mt-1 text-xs leading-5 text-white/43 sm:text-sm">{provider.description}</p>
           {connection && (
             <p className="mt-1.5 text-[11px] text-white/28">
-              {provider.unavailableNote ? provider.id === "garmin" ? "Paused by Garmin" : provider.unavailableNote : connection.failure_reason && connection.failure_reason !== "orphan_reference" ? connectionFailureCopy[connection.failure_reason] : connected ? connection.last_data_at ? `Last received ${formatDate(connection.last_data_at)}` : "Connected. Waiting for the first readings." : errored ? "Connection wasn't completed. Reconnect to try again." : pending ? "Awaiting authorisation and verification. You can retry if you closed the provider window." : "Not connected"}
+              {provider.unavailableNote ? provider.id === "garmin" ? "Paused by Garmin" : provider.unavailableNote : connection.failure_reason && connection.failure_reason !== "orphan_reference" ? connectionFailureMessage(connection.failure_reason, provider.id) : connected ? connection.last_data_at ? `Last received ${formatDate(connection.last_data_at)}` : "Connected. Waiting for the first readings." : errored ? "Connection wasn't completed. Reconnect to try again." : pending ? "Awaiting authorisation and verification. You can retry if you closed the provider window." : "Not connected"}
             </p>
           )}
         </div>

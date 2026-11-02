@@ -7,3 +7,10 @@ export const connectionFailureCopy: Record<string, string> = {
  provider_paused: "Paused by Garmin",
  orphan_reference: "Terra user belongs to a deleted profile",
 };
+
+export function connectionFailureMessage(reason: string, provider: string) {
+ if (reason === "widget_return_failed" && (provider === "apple" || provider === "healthconnect")) {
+  return "The health connection wasn't completed. Reconnect to try again.";
+ }
+ return connectionFailureCopy[reason];
+}
