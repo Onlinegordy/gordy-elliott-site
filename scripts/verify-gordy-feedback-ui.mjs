@@ -177,7 +177,7 @@ try {
           label: "CAPACITY",
           callCount: 2,
           callLabel: "Book your coaching call",
-          bookingUrl: "https://calendly.com/gordyonline/at-capacity-1-1-call",
+          bookingUrl: "https://onlinegordy.co.uk/book/capacity",
         },
         monthStart: `${qaDate.getFullYear()}-${String(qaDate.getMonth() + 1).padStart(2, "0")}-01`,
         confirmations: [],
