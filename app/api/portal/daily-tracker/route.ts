@@ -1,7 +1,7 @@
 import { createAdminClient } from "@/lib/supabase/admin";
 import { createClient } from "@/lib/supabase/server";
 import { NextResponse } from "next/server";
-import { coachingDateKey as todayKey, isValidTrackerDate, parseManualSteps } from "@/lib/daily-steps";
+import { coachingDateKey, trackerTimeZone, isValidTrackerDate, parseManualSteps } from "@/lib/daily-steps";
 
 type DailyMetric = {
   id: string;
@@ -47,6 +47,9 @@ async function getClientProfile() {
 }
 
 export async function GET(request: Request) {
+  const timeZone = trackerTimeZone(request.headers.get("x-client-timezone"));
+  if (!timeZone) return NextResponse.json({ error: "Choose a valid timezone." }, { status: 400 });
+  const todayKey = () => coachingDateKey(new Date(), timeZone);
   const context = await getClientProfile();
   if (context.error) return context.error;
   const { admin, profile } = context;
@@ -114,6 +117,9 @@ export async function GET(request: Request) {
 }
 
 export async function POST(request: Request) {
+  const timeZone = trackerTimeZone(request.headers.get("x-client-timezone"));
+  if (!timeZone) return NextResponse.json({ error: "Choose a valid timezone." }, { status: 400 });
+  const todayKey = () => coachingDateKey(new Date(), timeZone);
   const context = await getClientProfile();
   if (context.error) return context.error;
   const { admin, profile } = context;

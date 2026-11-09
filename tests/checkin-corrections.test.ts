@@ -10,13 +10,27 @@ async function fixture() {
  const config=buildFallbackCheckinConfig(); config.mood_enabled=false; config.questions=config.questions.map(q=>({...q,required:false}));
  const saved: Record<string,unknown>={id:'old',client_id:'owner',created_at:'2026-09-01T12:00:00Z',week_number:1,responses:{wins:'Original win'},form_config_snapshot:config,checkin_form_id:'form',admin_reply:'Original coach reply',replied_at:'2026-09-02T12:00:00Z'};
  const writes:Array<{table:string;payload:Record<string,unknown>;filters:Record<string,unknown>}>=[];
- let measurementFails=false; let concurrentAnswers:Record<string,unknown>|null=null;
+ let measurementFails=false; let preferenceFails=false; let checkinFails=false; let concurrentAnswers:Record<string,unknown>|null=null;
+ const profile={id:'owner',programme_type:'capacity',weight_unit:'lb',checkin_form_id:'form',tier:'coached'};
  const admin={from(table:string) {
   const filters:Record<string,unknown>={}; let payload:Record<string,unknown>|null=null; let mode='read'; let single=false;
   const b={select(){return b},eq(k:string,v:unknown){filters[k]=v;return b},gte(k:string,v:unknown){filters[`gte:${k}`]=v;return b},or(value:string){filters.or=value;return b},order(){return b},limit(){return b},update(p:Record<string,unknown>){payload=p;mode='update';return b},insert(p:Record<string,unknown>){payload=p;mode='insert';return b},upsert(p:Record<string,unknown>){payload=p;mode='upsert';return b},single(){single=true;return Promise.resolve(result())},maybeSingle(){single=true;return Promise.resolve(result())},then(resolve:(x:unknown)=>unknown){return Promise.resolve(result()).then(resolve)}};
   function result():{data:unknown;error:unknown} {
-   if(payload) { writes.push({table,payload,filters}); if(table==='checkins') { assert.equal(filters.client_id,'owner');if (!filters.responses || JSON.stringify(saved.responses)===filters.responses) Object.assign(saved,structuredClone(payload)); } if(table==='client_body_measurements'&&concurrentAnswers)saved.responses=concurrentAnswers; return {data:null,error:table==='client_body_measurements'&&measurementFails?{message:'offline'}:null}; }
-   if(table==='client_profiles')return {data:{id:'owner',programme_type:'capacity',weight_unit:'lb',checkin_form_id:'form',tier:'coached'},error:null};
+   if(payload) {
+    writes.push({table,payload,filters});
+    if(table==='checkins') {
+     assert.equal(mode==='insert'?payload.client_id:filters.client_id,'owner');
+     if(checkinFails)return {data:null,error:{message:'save failed'}};
+     if (!filters.responses || JSON.stringify(saved.responses)===filters.responses) Object.assign(saved,mode==='insert'?{id:'new',created_at:new Date().toISOString()}:{},structuredClone(payload));
+    }
+    if(table==='client_profiles') {
+     if(preferenceFails)return {data:null,error:{message:'preference unavailable'}};
+     Object.assign(profile,payload);
+    }
+    if(table==='client_body_measurements'&&concurrentAnswers)saved.responses=concurrentAnswers;
+    return {data:table==='checkins'?structuredClone(saved):null,error:table==='client_body_measurements'&&measurementFails?{message:'offline'}:null};
+   }
+   if(table==='client_profiles')return {data:{...profile},error:null};
    if(table==='checkin_forms')return {data:{id:'form',config},error:null};
    if(table==='checkins'){
     assert.equal(filters.client_id,'owner');
@@ -33,7 +47,7 @@ async function fixture() {
  const exports:{GET?:(r:Request)=>Promise<Response>;POST?:(r:Request)=>Promise<Response>}={};
  new Function('require','exports',compiled)((name:string)=>name==='@/lib/supabase/admin'?{createAdminClient:()=>admin}:name==='@/lib/supabase/server'?{createClient:async()=>({auth:{getUser:async()=>({data:{user:{id:'user'}}})}})}:name==='@/lib/checkin-replies'?{loadCoachCheckinReplies:async()=>({replies:[],unavailable:false})}:requireActual(name),exports);
  const post=(body:object)=>exports.POST!(new Request('https://example.invalid/api/portal/checkin',{method:'POST',body:JSON.stringify(body)}));
- return {get:(id?:string)=>exports.GET!(new Request(`https://example.invalid/api/portal/checkin${id?`?edit=${id}`:''}`)),post,saved,writes,failMeasurement:()=>{measurementFails=true},recoverMeasurement:()=>{measurementFails=false},concurrentCorrection:(answers:Record<string,unknown>)=>{concurrentAnswers=answers}};
+ return {get:(id?:string)=>exports.GET!(new Request(`https://example.invalid/api/portal/checkin${id?`?edit=${id}`:''}`)),post,saved,writes,profile,failPreference:()=>{preferenceFails=true},failCheckin:()=>{checkinFails=true},failMeasurement:()=>{measurementFails=true},recoverMeasurement:()=>{measurementFails=false},concurrentCorrection:(answers:Record<string,unknown>)=>{concurrentAnswers=answers}};
 }
 test('client reopens an owned historical check-in; original units survive preference changes',async()=>{
  const f=await fixture(); const res=await f.get('old'); assert.equal(res.status,200);const body=await res.json();assert.equal(body.weightUnit,'kg');assert.equal(body.currentWeekCheckin.id,'old');assert.equal(body.editingHistory,true);
@@ -104,4 +118,36 @@ test('an older form cannot implicitly overwrite a saved scheduled submission',as
 
 test('different backfilled measurement weeks keep distinct chart dates despite same submission day',async()=>{
  const dates=[];for(const scheduled of ['2026-09-21','2026-09-28']){const f=await fixture();f.saved.scheduled_date=scheduled;f.saved.created_at='2026-10-15T12:00:00Z';const response=await f.post({checkin_id:'old',scheduled_date:scheduled,responses:{weight:'80'},weight_unit:'kg'});assert.equal(response.status,200);assert.equal((await response.json()).photo_date,scheduled);dates.push(f.writes.find(w=>w.table==='client_body_measurements')?.payload.measured_date);assert.equal(f.saved.created_at,'2026-10-15T12:00:00Z');}assert.deepEqual(dates,['2026-09-21','2026-09-28']);
+});
+
+test('a current check-in remembers the explicit unit for the next new form',async()=>{
+ const f=await fixture();f.profile.weight_unit='kg';
+ const response=await f.post({responses:{weight:'159'},weight_unit:'lb'});assert.equal(response.status,200);
+ assert.equal(f.profile.weight_unit,'lb');assert.equal((f.saved.responses as Record<string,unknown>).weight_unit,'lb');
+ assert.ok(Math.abs(Number(f.writes.find(w=>w.table==='client_body_measurements')?.payload.weight_kg)-72.12118683)<0.000001);
+ f.saved.scheduled_date='2026-09-21';f.saved.created_at='2026-09-21T12:00:00Z';
+ const next=await(await f.get()).json();assert.equal(next.currentWeekCheckin,null);assert.equal(next.weightUnit,'lb');
+});
+
+test('missing submitted units use the profile for new entries and saved responses for history',async()=>{
+ const fresh=await fixture();await fresh.post({responses:{weight:'159'}});
+ assert.equal((fresh.saved.responses as Record<string,unknown>).weight_unit,'lb');
+ const old=await fixture();old.saved.responses={weight:'159',weight_unit:'lb'};
+ await old.post({checkin_id:'old',responses:{wins:'A correction'}});
+ assert.equal((old.saved.responses as Record<string,unknown>).weight_unit,'lb');
+ assert.equal(old.writes.some(w=>w.table==='client_profiles'),false);
+});
+
+test('backfilled entries and failed check-ins do not change the current preference',async()=>{
+ const history=await fixture();await history.post({scheduled_date:'2026-09-21',responses:{weight:'80'},weight_unit:'kg'});
+ assert.equal(history.profile.weight_unit,'lb');
+ assert.equal(history.writes.some(w=>w.table==='client_profiles'&&Object.hasOwn(w.payload,'weight_unit')),false);
+ const failed=await fixture();failed.failCheckin();assert.equal((await failed.post({responses:{weight:'80'},weight_unit:'kg'})).status,500);
+ assert.equal(failed.writes.some(w=>w.table==='client_profiles'),false);
+});
+
+test('a preference write failure is surfaced without claiming the saved check-in failed',async()=>{
+ const f=await fixture();f.failPreference();const response=await f.post({responses:{weight:'80'},weight_unit:'kg'});
+ assert.equal(response.status,200);assert.match((await response.json()).preferenceWarning,/could not be remembered/);
+ assert.equal(f.profile.weight_unit,'lb');assert.equal((f.saved.responses as Record<string,unknown>).weight_unit,'kg');
 });

@@ -7,6 +7,7 @@ import { useToast } from "@/components/ui/Toast";
 import CyclingStatusText from "@/components/ui/CyclingStatusText";
 import { sanitizeWearableRecovery, type WearableDailySummary } from "@/lib/wearable-insights";
 import { coachingDateKey, isValidTrackerDate, parseManualSteps, resolveDailySteps } from "@/lib/daily-steps";
+import ScrollSafeRange from "@/components/ui/ScrollSafeRange";
 
 type DailyMetric = {
   id: string;
@@ -95,18 +96,14 @@ function ScaleSlider({ label, value, onChange, lowLabel, highLabel }: {
         <label className="text-sm font-semibold text-text-primary">{label}</label>
         <output className="metric-num min-w-10 text-right text-xl font-bold text-accent-bright">{value || "—"}</output>
       </div>
-      <input
-        type="range"
+      <ScrollSafeRange
         min="1"
         max="10"
         step="1"
         value={sliderValue}
         aria-label={`${label}, 1 to 10`}
         aria-valuetext={value ? `${value} out of 10` : "Not set"}
-        onPointerDown={() => {
-          if (value === "") onChange(1);
-        }}
-        onChange={(event) => onChange(Number(event.target.value))}
+        onValueChange={next => onChange(Number(next))}
         className="range-shift"
         style={{ "--range-pct": `${percentage}%` } as React.CSSProperties}
       />
@@ -131,7 +128,8 @@ function TrackerCard({ title, hint, children }: { title: string; hint?: string; 
 }
 
 export default function DailyTrackerPage() {
-  const todayKey = coachingDateKey();
+  const [timeZone, setTimeZone] = useState<string | null>(null);
+  const todayKey = coachingDateKey(new Date(), timeZone || "Europe/London");
   const { toast } = useToast();
   const [entries, setEntries] = useState<DailyMetric[]>([]);
   const [loading, setLoading] = useState(true);
@@ -171,12 +169,13 @@ export default function DailyTrackerPage() {
     return Math.round(scores.reduce((sum, value) => sum + value, 0) / scores.length);
   }, [sevenDayEntries]);
 
-  const load = useCallback(async (selectedDate = todayKey) => {
+  const load = useCallback(async (selectedDate = coachingDateKey(new Date(), timeZone || "Europe/London")) => {
+    if (!timeZone) return;
     const sequence = ++loadSequence.current;
     setLoading(true);
     setTrackerLoadFailed(false);
     try {
-      const res = await fetch(`/api/portal/daily-tracker?date=${encodeURIComponent(selectedDate)}`);
+      const res = await fetch(`/api/portal/daily-tracker?date=${encodeURIComponent(selectedDate)}`, { headers: { "x-client-timezone": timeZone } });
       const data = await res.json();
       if (sequence !== loadSequence.current) return;
       if (!res.ok) throw new Error(data.error || "Failed to load tracker");
@@ -236,7 +235,11 @@ export default function DailyTrackerPage() {
     } finally {
       if (sequence === loadSequence.current) setLoading(false);
     }
-  }, [toast, todayKey]);
+  }, [toast, timeZone]);
+
+  useEffect(() => {
+    setTimeZone(Intl.DateTimeFormat().resolvedOptions().timeZone || "Europe/London");
+  }, []);
 
   useEffect(() => {
     load();
@@ -262,7 +265,7 @@ export default function DailyTrackerPage() {
     try {
       const res = await fetch("/api/portal/daily-tracker", {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
+        headers: { "Content-Type": "application/json", "x-client-timezone": timeZone || "Europe/London" },
         body: JSON.stringify(form),
       });
       const data = await res.json();

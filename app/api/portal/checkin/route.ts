@@ -133,7 +133,10 @@ export async function POST(request: Request) {
   if (!baseConfig) return NextResponse.json({ error: "Gordy is preparing your personal check-in." }, { status: 409 });
   if (body.weight_unit !== undefined && !isWeightUnit(body.weight_unit)) return NextResponse.json({ error: "Choose kg or lb" }, { status: 400 });
   const previousUnit = baseConfig.progress_tracking?.find(m => m.id === "weight")?.unit;
-  const weightUnit = body.weight_unit || (isWeightUnit(previousUnit) ? previousUnit : "kg");
+  const savedUnit = currentWeekCheckin?.responses?.weight_unit || previousUnit;
+  const weightUnit = body.weight_unit || (currentWeekCheckin
+    ? (isWeightUnit(savedUnit) ? savedUnit : "kg")
+    : (isWeightUnit(profile.weight_unit) ? profile.weight_unit : isWeightUnit(previousUnit) ? previousUnit : "kg"));
   const submittedConfig = checkinConfigForWeightUnit(baseConfig, weightUnit);
   const submittedTemplateId = snapshot ? currentWeekCheckin.checkin_form_id : template?.id || null;
   if (profile.programme_type === "boardroom" && body.config_revision !== checkinConfigRevision(submittedConfig, submittedTemplateId)) {
@@ -200,11 +203,19 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: insertError.message }, { status: insertError.code === "P0001" ? 409 : 500 });
   }
 
-  // Update last checkin timestamp
-  if (!currentWeekCheckin) await admin
-    .from("client_profiles")
-    .update({ last_checkin: new Date().toISOString() })
-    .eq("id", profile.id);
+  // Remember choices made on the current scheduled form, never historical corrections.
+  const savedDate = currentWeekCheckin?.scheduled_date || (currentWeekCheckin ? checkinToday(new Date(currentWeekCheckin.created_at)) : selectedDate);
+  const rememberUnit = profile.programme_type !== "boardroom" && body.weight_unit !== undefined
+    && selectedDate === dates[0] && savedDate === dates[0] && weightUnit !== profile.weight_unit;
+  const profileUpdate = {
+    ...(!currentWeekCheckin ? { last_checkin: new Date().toISOString() } : {}),
+    ...(rememberUnit ? { weight_unit: weightUnit } : {}),
+  };
+  let preferenceWarning: string | null = null;
+  if (Object.keys(profileUpdate).length) {
+    const { error: profileError } = await admin.from("client_profiles").update(profileUpdate).eq("id", profile.id);
+    if (profileError && rememberUnit) preferenceWarning = "Check-in saved, but your preferred weight unit could not be remembered. Set it in Settings before your next check-in.";
+  }
 
   let measurementWarning: string | null = null;
   // Auto-sync progress metrics to body measurements table
@@ -241,6 +252,7 @@ export async function POST(request: Request) {
     created_at:savedCheckin?.created_at||currentWeekCheckin?.created_at||null,
     week_number: weekNumber,
     measurementWarning,
+    preferenceWarning,
     updated: Boolean(currentWeekCheckin),
   });
 }
