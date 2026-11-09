@@ -12,6 +12,7 @@ import { checkinDate } from "@/lib/checkin-message";
 import { canReadCoachCheckinReplies, coachCheckinReplyHref, type CoachCheckinReply } from "@/lib/checkin-replies";
 import type { WearableDailySummary } from "@/lib/wearable-insights";
 import PhotoUpload from "@/components/portal/PhotoUpload";
+import ScrollSafeRange from "@/components/ui/ScrollSafeRange";
 
 const moodColorMap: Record<string, string> = {
   emerald: "border-emerald-500/30 bg-emerald-500/10 text-emerald-400",
@@ -55,13 +56,12 @@ function ScaleInput({ metric, value, onChange }: { metric: ProgressMetric; value
           {valueLabel}
         </div>
       </div>
-      <input
-        type="range"
+      <ScrollSafeRange
         min={min}
         max={max}
         step={1}
         value={sliderValue}
-        onChange={(e) => onChange(e.target.value)}
+        onValueChange={onChange}
         aria-label={metric.label}
         aria-valuetext={selected === null ? "Not set" : `${selected} out of ${max}`}
         className="range-shift"
@@ -419,13 +419,14 @@ export default function CheckInPage() {
         else if (!currentWeekSavedAt) setCurrentWeekSavedAt(new Date().toISOString());
         setSaveMessage(data.updated ? "Your saved check-in was updated." : `Your check-in for ${scheduledDate || "this week"} was saved.`);
         setSubmitted(true);
+        const saveWarnings = [data.measurementWarning, data.preferenceWarning].filter(Boolean).join(" ");
         if (failedPhotoAngles.length > 0) {
           toast(
-            `Check-in saved, but these photo${failedPhotoAngles.length === 1 ? "" : "s"} didn't upload: ${failedPhotoAngles.join(", ")}. Try re-adding from Progress.`,
+            `Check-in saved, but these photo${failedPhotoAngles.length === 1 ? "" : "s"} didn't upload: ${failedPhotoAngles.join(", ")}. Try re-adding from Progress. ${saveWarnings}`.trim(),
             "error"
           );
         } else {
-          toast(data.measurementWarning || (data.updated ? "Saved check-in updated" : monthlyReview ? "Check-in saved for your monthly review" : "Check-in submitted - Gordy will review it this week"), data.measurementWarning ? "error" : "success");
+          toast(saveWarnings || (data.updated ? "Saved check-in updated" : monthlyReview ? "Check-in saved for your monthly review" : "Check-in submitted - Gordy will review it this week"), saveWarnings ? "error" : "success");
         }
       } else {
         const data = await res.json().catch(() => ({}));

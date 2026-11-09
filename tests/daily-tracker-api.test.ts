@@ -9,7 +9,7 @@ const requireActual = createRequire(import.meta.url);
 const clientId = "owned-client";
 const selectedDate = "2026-01-05";
 
-async function handlerFixture() {
+async function handlerFixture(now?: Date) {
   const queries: Array<{ table: string; filters: Record<string, unknown>; limit?: number; payload?: Record<string, unknown> }> = [];
   let metric: Record<string, unknown> = { id: "metric-1", tracked_date: selectedDate, manual_steps: 8000, training_completed: false };
   const admin = {
@@ -48,7 +48,7 @@ async function handlerFixture() {
   new Function("require", "exports", compiled)((id: string) => {
     if (id === "@/lib/supabase/admin") return { createAdminClient: () => admin };
     if (id === "@/lib/supabase/server") return { createClient: async () => ({ auth: { getUser: async () => ({ data: { user: { id: "signed-in-user" } } }) } }) };
-    if (id === "@/lib/daily-steps") return steps;
+    if (id === "@/lib/daily-steps") return { ...steps, coachingDateKey: (date: Date, zone?: string) => steps.coachingDateKey(now || date, zone) };
     return requireActual(id);
   }, exports);
   return { GET: exports.GET!, POST: exports.POST!, queries, getMetric: () => metric };
@@ -87,4 +87,24 @@ test("coach data loading includes the manual step total required by its renderer
   const source = await readFile(new URL("../lib/admin-data.ts", import.meta.url), "utf8");
   const dailySelect = source.match(/\.from\("client_daily_metrics"\)\s*\.select\("([^"]+)"\)/)?.[1].split(/,\s*/);
   assert.ok(dailySelect?.includes("manual_steps"));
+});
+
+test("tracker API uses the same local day for defaults and future-date validation", async () => {
+  const fixture = await handlerFixture(new Date("2026-11-03T03:42:00Z"));
+  const url = "https://app.example.invalid/api/portal/daily-tracker";
+  const headers = { "content-type": "application/json", "x-client-timezone": "America/Chicago" };
+  assert.equal((await fixture.POST(new Request(url, { method: "POST", headers, body: "{}" }))).status, 200);
+  assert.equal(fixture.getMetric().tracked_date, "2026-11-02");
+  const writes = fixture.queries.filter(q => q.payload).length;
+  assert.equal((await fixture.POST(new Request(url, { method: "POST", headers, body: JSON.stringify({ tracked_date: "2026-11-03" }) }))).status, 400);
+  assert.equal(fixture.queries.filter(q => q.payload).length, writes);
+  assert.equal((await fixture.GET(new Request(url + "?date=2026-11-02", { headers }))).status, 200);
+  assert.equal((await fixture.GET(new Request(url + "?date=2026-11-03", { headers }))).status, 400);
+  assert.equal((await fixture.GET(new Request(url, { headers: { "x-client-timezone": "Mars/Olympus" } }))).status, 400);
+  const ahead = { ...headers, "x-client-timezone": "Pacific/Kiritimati" };
+  const tomorrow = await handlerFixture(new Date("2026-11-02T12:30:00Z"));
+  assert.equal((await tomorrow.POST(new Request(url, { method: "POST", headers: ahead, body: JSON.stringify({ tracked_date: "2026-11-03" }) }))).status, 200);
+  // Old app versions still use their existing default until they load the updated UI.
+  assert.equal((await fixture.POST(new Request(url, { method: "POST", body: "{}" }))).status, 200);
+  assert.equal(fixture.getMetric().tracked_date, "2026-11-03");
 });

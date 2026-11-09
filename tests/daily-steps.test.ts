@@ -2,7 +2,7 @@ import assert from "node:assert/strict";
 import { readFile } from "node:fs/promises";
 import test from "node:test";
 import { PGlite } from "@electric-sql/pglite";
-import { coachingDateKey, isValidTrackerDate, parseManualSteps, resolveDailySteps } from "../lib/daily-steps";
+import { coachingDateKey, trackerTimeZone, isValidTrackerDate, parseManualSteps, resolveDailySteps } from "../lib/daily-steps";
 
 test("blank steps are unknown and manual zero overrides synced activity without adding totals", () => {
   for (const value of [null, undefined, "", "   "]) assert.deepEqual(parseManualSteps(value), { value: null });
@@ -56,4 +56,15 @@ test("the coaching date agrees across device timezones at UK midnight and DST ch
   assert.equal(coachingDateKey(new Date("2026-10-07T12:00:00+14:00")), "2026-10-06");
   assert.equal(coachingDateKey(new Date("2026-03-29T23:30:00Z")), "2026-03-30");
   assert.equal(coachingDateKey(new Date("2026-10-25T23:30:00Z")), "2026-10-25");
+});
+
+test("tracker dates use the requested local timezone across midnight and DST", () => {
+  assert.equal(coachingDateKey(new Date("2026-11-03T03:42:00Z"), "America/Chicago"), "2026-11-02");
+  assert.equal(coachingDateKey(new Date("2026-11-03T03:42:00Z"), "Pacific/Auckland"), "2026-11-03");
+  assert.equal(coachingDateKey(new Date("2026-11-02T12:30:00Z"), "Pacific/Kiritimati"), "2026-11-03");
+  assert.equal(coachingDateKey(new Date("2026-11-01T06:30:00Z"), "America/New_York"), "2026-11-01");
+  assert.equal(coachingDateKey(new Date("2026-11-01T07:30:00Z"), "America/New_York"), "2026-11-01");
+  assert.equal(trackerTimeZone(undefined), "Europe/London");
+  for (const value of ["Mars/Olympus", 123, {}, "x".repeat(101)]) assert.equal(trackerTimeZone(value), null);
+  assert.equal(trackerTimeZone("America/Chicago"), "America/Chicago");
 });

@@ -29,10 +29,16 @@ export function isValidTrackerDate(value: unknown, latestDate: string): value is
   return Number.isFinite(date.getTime()) && date.toISOString().slice(0, 10) === value;
 }
 
-/** The tracker and its API use the same coaching day, regardless of device timezone. */
-export function coachingDateKey(now = new Date()) {
+/** Missing timezone retains compatibility with older apps; invalid zones are rejected. */
+export function trackerTimeZone(value: unknown): string | null {
+  if (value === null || value === undefined || value === "") return "Europe/London";
+  if (typeof value !== "string" || value.length > 100) return null;
+  try { new Intl.DateTimeFormat("en", { timeZone: value }); return value; } catch { return null; }
+}
+
+export function coachingDateKey(now = new Date(), timeZone = "Europe/London") {
   const parts = new Intl.DateTimeFormat("en-CA", {
-    timeZone: "Europe/London", year: "numeric", month: "2-digit", day: "2-digit",
+    timeZone, year: "numeric", month: "2-digit", day: "2-digit",
   }).formatToParts(now);
   return `${parts.find((part) => part.type === "year")!.value}-${parts.find((part) => part.type === "month")!.value}-${parts.find((part) => part.type === "day")!.value}`;
 }
