@@ -8,6 +8,7 @@ import { AI_CONTENT_REPORT_KEY } from "@/lib/ai-content-report";
 interface Message {
   role: "user" | "assistant";
   content: string;
+  contextPolicy?: string;
   action?: { label: string; href: string };
 }
 
@@ -154,7 +155,7 @@ export default function ShiftAIPage() {
 
       const data = await res.json();
       if (data.usage) setUsage(data.usage);
-      setMessages([...updated, { role: "assistant", content: data.reply, action: data.action }]);
+      setMessages([...updated, { role: "assistant", content: data.reply, action: data.action, contextPolicy: data.contextPolicy }]);
     } catch {
       setMessages([...updated, { role: "assistant", content: "Sorry, something went wrong. Please try again." }]);
     } finally {

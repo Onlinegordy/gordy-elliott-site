@@ -1,5 +1,6 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
 import { getSiteUrl } from "@/lib/site-url";
+import { hasExcludedMachineProvenance, isAiSafeGuidance } from "@/lib/ai-source-policy.mjs";
 
 const DEFAULT_OPENAI_MODEL = "text-embedding-3-small";
 const DEFAULT_OPENROUTER_MODEL = "openai/text-embedding-3-small";
@@ -22,6 +23,7 @@ interface BrainMatchRow {
 
 interface BrainGuidanceRow {
   id: string;
+  provenance: string;
   category: string;
   principles: unknown;
   coaching_moves: unknown;
@@ -62,6 +64,7 @@ export async function getShiftBrainContextResult(
   const trimmed = query.trim();
   const provider = embeddingProvider();
   const audience = options.audience || "client";
+  if (hasExcludedMachineProvenance(query)) return staticFallbackResult(audience);
   if (!trimmed) return emptyResult();
   if (!embeddingApiKey(provider)) return staticFallbackResult(audience);
 
@@ -179,7 +182,7 @@ async function formatBrainContext(admin: SupabaseClient, matches: BrainMatchRow[
   const matchedIds = [...new Set(matches.map((match) => match.doc_id))];
   const { data, error } = await admin
     .from("brain_docs")
-    .select("id, category, principles, coaching_moves, hierarchy_links")
+    .select("id, provenance, category, principles, coaching_moves, hierarchy_links")
     .in("id", matchedIds);
 
   if (error || !data?.length) {
@@ -191,7 +194,7 @@ async function formatBrainContext(admin: SupabaseClient, matches: BrainMatchRow[
   const blocks = matches
     .map((match, index) => {
       const guidance = guidanceById.get(match.doc_id);
-      if (!guidance) return null;
+      if (!guidance || !isAiSafeGuidance(guidance)) return null;
       const principles = normalizeTextArray(guidance.principles).slice(0, 4);
       const coachingMoves = normalizeTextArray(guidance.coaching_moves).slice(0, 4);
       const hierarchy = normalizeTextArray(guidance.hierarchy_links).slice(0, 4);

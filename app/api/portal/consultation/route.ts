@@ -9,6 +9,7 @@ import { isBoardroomConsultation, validateConsultationAnswers, buildBoardroomCon
 import { getSiteUrl } from "@/lib/site-url";
 import { NextRequest, NextResponse } from "next/server";
 import { isValidIsoDateOfBirth } from "@/lib/date-of-birth";
+import { hasExcludedMachineProvenance } from "@/lib/ai-source-policy.mjs";
 
 const VALID_SEX_VALUES = ["female", "male", "prefer_not_to_say"];
 const PROFILE_FIELD_IDS = new Set(["date_of_birth", "sex", "cycle_tracking_enabled"]);
@@ -50,6 +51,7 @@ function buildFallbackSummary(data: Record<string, unknown>, questions: FormQues
 
 async function extractConsultationSummary(data: Record<string, unknown>, questions: FormQuestion[]) {
   const fallback = buildFallbackSummary(data, questions);
+  if (hasExcludedMachineProvenance(data)) return fallback;
   const apiKey = process.env.OPENROUTER_API_KEY;
   if (!apiKey) return fallback;
 
