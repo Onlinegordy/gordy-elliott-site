@@ -10,6 +10,7 @@ import { createAdminClient } from "@/lib/supabase/admin";
 import { createClient } from "@/lib/supabase/server";
 import { trackAIUsage } from "@/lib/ai-usage";
 import { NextResponse } from "next/server";
+import { assertAiSourceAllowed } from "@/lib/ai-source-policy.mjs";
 
 const MODEL = "claude-sonnet-4-20250514";
 
@@ -28,6 +29,7 @@ export async function POST(request: Request) {
   const sourceType = isCoachingNoteSourceType(body.source_type) ? body.source_type : "other";
   const sourceTitle = typeof body.source_title === "string" ? body.source_title.trim().slice(0, 180) : "";
   const sourceDate = cleanDate(body.source_date);
+  try { assertAiSourceAllowed(body); } catch { return NextResponse.json({ error: "Imported Garmin data cannot be processed by AI." }, { status: 400 }); }
 
   if (!clientId) return NextResponse.json({ error: "client_id required" }, { status: 400 });
   if (rawNotes.length < 50) return NextResponse.json({ error: "Paste at least 50 characters of notes or transcript." }, { status: 400 });

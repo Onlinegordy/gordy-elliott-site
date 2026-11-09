@@ -7,6 +7,7 @@ import AIComposerTextarea from "@/components/ui/AIComposerTextarea";
 interface Message {
   role: "user" | "assistant";
   content: string;
+  contextPolicy?: string;
 }
 
 function renderMarkdown(text: string) {
@@ -99,7 +100,7 @@ export default function AdminShiftAIPage() {
       }
 
       const data = await res.json();
-      setMessages([...updated, { role: "assistant", content: data.reply }]);
+      setMessages([...updated, { role: "assistant", content: data.reply, contextPolicy: data.contextPolicy }]);
     } catch {
       setMessages([...updated, { role: "assistant", content: "Sorry, something went wrong. Please try again." }]);
     } finally {

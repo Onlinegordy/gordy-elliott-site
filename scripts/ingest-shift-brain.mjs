@@ -2,6 +2,7 @@ import crypto from "node:crypto";
 import fs from "node:fs";
 import { createClient } from "@supabase/supabase-js";
 import appIdentity from "../config/app-identity.json" with { type: "json" };
+import { isAiSafeGuidance } from "../lib/ai-source-policy.mjs";
 
 const args = parseArgs(process.argv.slice(2));
 const inputPath = args.input || process.env.SHIFT_BRAIN_APPROVED_JSONL || "/private/tmp/shift-brain-approved.jsonl";
@@ -23,6 +24,10 @@ if (!fs.existsSync(inputPath)) {
 }
 
 const docs = readJsonl(inputPath);
+if (docs.some(doc => !isAiSafeGuidance(doc))) {
+  console.error("Refusing to embed knowledge with excluded or unverified machine-source provenance.");
+  process.exit(1);
+}
 const report = fs.existsSync(reportPath) ? JSON.parse(fs.readFileSync(reportPath, "utf8")) : {};
 const chunks = docs.flatMap((doc) => chunkDoc(doc, embeddingModel));
 

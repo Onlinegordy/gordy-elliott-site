@@ -1,6 +1,7 @@
 import crypto from "node:crypto";
 import fs from "node:fs";
 import path from "node:path";
+import { isAiSafeGuidance } from "../lib/ai-source-policy.mjs";
 
 const REQUIRED_FIELDS = {
   id: "string",
@@ -166,6 +167,7 @@ function parseCsvLine(line) {
 
 function exclusionReasons(row, review, selectedScope) {
   const reasons = [];
+  if (!isAiSafeGuidance(row)) reasons.push("excluded_or_unverified_ai_source");
   if (row.parse_error) reasons.push("invalid_json");
   for (const [field, type] of Object.entries(REQUIRED_FIELDS)) {
     if (!(field in row)) reasons.push(`missing_${field}`);

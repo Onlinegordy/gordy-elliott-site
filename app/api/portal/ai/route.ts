@@ -10,7 +10,9 @@ import { trackAIUsage } from "@/lib/ai-usage";
 import { rateLimit } from "@/lib/rate-limit";
 import { getCyclePhase, isCycleEligible, toDateKey, type CycleSettings } from "@/lib/cycle-tracking";
 import { formatExercisePrescription } from "@/lib/exercise-prescriptions";
-import { formatWearableSummaryForPrompt, sanitizeWearableRecovery, type WearableConnection, type WearableDailySummary } from "@/lib/wearable-insights";
+import { formatWearableSummaryForPrompt, type WearableConnection, type WearableDailySummary } from "@/lib/wearable-insights";
+import { aiWearableSummaries } from "@/lib/ai-wearable-context";
+import { AI_CONTEXT_POLICY, aiConversationHistory, isAiSafeWearableProvider, assertAiSourceAllowed, hasExcludedMachineProvenance, aiManualDailyRatings } from "@/lib/ai-source-policy.mjs";
 import { getPortalAIAction } from "@/lib/portal-ai-action";
 import { claimProgrammeAIInteraction, getShiftAILimit, releaseProgrammeAIInteraction, getProgrammeAIUsage, claimFoundationsAI, finishFoundationsAI } from "@/lib/programme-ai";
 import { monthStartKey, normalizeProgrammeType } from "@/lib/programmes";
@@ -62,6 +64,7 @@ export async function POST(req: NextRequest) {
   if (!message?.trim()) {
     return NextResponse.json({ error: "Message required" }, { status: 400 });
   }
+  try { assertAiSourceAllowed(message); } catch { return NextResponse.json({ error: "Imported Garmin data cannot be processed by AI." }, { status: 400 }); }
 
   const apiKey = process.env.ANTHROPIC_API_KEY;
   if (!apiKey) {
@@ -275,7 +278,7 @@ export async function POST(req: NextRequest) {
     .eq("client_id", profile?.id || "")
     .order("created_at", { ascending: false })
     .limit(1);
-  const latestCheckin = latestCheckins?.[0] || null;
+  const latestCheckin = latestCheckins?.find(row => !hasExcludedMachineProvenance(row)) || null;
 
   let cycleContext = "Cycle tracking is not enabled for this client.";
   if (isCycleEligible(profile)) {
@@ -294,7 +297,9 @@ export async function POST(req: NextRequest) {
         .limit(5),
       admin
         .from("client_daily_metrics")
-        .select("tracked_date, sleep_hours, energy_level, stress_level, nutrition_score, training_completed")
+        // Sleep can be copied from an old wearable summary without origin
+        // metadata. Keep manually entered ratings, not that ambiguous value.
+        .select("tracked_date, energy_level, stress_level, nutrition_score, training_completed")
         .eq("client_id", profile?.id || "")
         .eq("tracked_date", todayKey)
         .maybeSingle(),
@@ -306,7 +311,7 @@ export async function POST(req: NextRequest) {
       phase: phaseInfo ? { label: phaseInfo.label, cycle_day: phaseInfo.day } : null,
       settings: cycleSettingsRes.data || null,
       recent_cycle_entries: cycleEntriesRes.data || [],
-      today_daily_readiness: dailyMetricRes.data || null,
+      today_daily_readiness: aiManualDailyRatings(dailyMetricRes.data),
     }, null, 2);
   }
 
@@ -324,8 +329,9 @@ export async function POST(req: NextRequest) {
       .order("summary_date", { ascending: false })
       .limit(7),
   ]);
-  const wearableConnections = (wearableConnectionsRes.data || []) as Pick<WearableConnection, "provider" | "status" | "last_sync_at">[];
-  const wearableSummaries = ((wearableSummariesRes.data || []) as WearableDailySummary[]).map(sanitizeWearableRecovery);
+  const wearableConnections = ((wearableConnectionsRes.data || []) as Pick<WearableConnection, "provider" | "status" | "last_sync_at">[])
+    .filter(connection => isAiSafeWearableProvider(connection.provider));
+  const wearableSummaries = await aiWearableSummaries(admin, (wearableSummariesRes.data || []) as WearableDailySummary[]);
   const latestWearableSummary = wearableSummaries[0] || null;
   const wearableContext = JSON.stringify({
     connected_providers: wearableConnections.map((connection) => ({
@@ -345,13 +351,15 @@ export async function POST(req: NextRequest) {
     })),
   }, null, 2);
 
-  const { data: sharedCoachingNotes } = await admin
+  const { data: sharedCoachingNoteRows } = await admin
     .from("client_coaching_notes")
-    .select("source_title, source_date, client_summary, priorities, created_at")
+    .select("source_type, source_title, source_date, client_summary, priorities, created_at")
     .eq("client_id", profile?.id || "")
     .eq("client_visible", true)
     .order("created_at", { ascending: false })
     .limit(5);
+
+  const sharedCoachingNotes = (sharedCoachingNoteRows || []).filter(note => !hasExcludedMachineProvenance(note));
 
   const sharedCoachingContext = sharedCoachingNotes?.length
     ? JSON.stringify(sharedCoachingNotes.map((note) => ({
@@ -450,7 +458,7 @@ export async function POST(req: NextRequest) {
   }
 
   const clientTier = (profile?.tier as string) || "coached";
-  const consultationData = profile?.consultation_data as Record<string, unknown> | null;
+  const consultationData = hasExcludedMachineProvenance(profile?.consultation_data) ? null : profile?.consultation_data as Record<string, unknown> | null;
   const consultationConfig = await loadConsultationConfig(admin, profile?.programme_type);
 
   const tierContext = clientTier === "ai_only"
@@ -689,10 +697,7 @@ Always confirm the action in your reply after using a tool.`;
 
   // Build messages for Claude
   const messages = [
-    ...(history || []).map((h: { role: string; content: string }) => ({
-      role: h.role,
-      content: h.content,
-    })),
+    ...aiConversationHistory(history),
     { role: "user", content: message },
   ];
 
@@ -822,6 +827,7 @@ Always confirm the action in your reply after using a tool.`;
     if (dailyClaim?.claimed) await finishFoundationsAI(admin, profile.id, dailyClaim, true);
     return NextResponse.json({
       reply,
+      contextPolicy: AI_CONTEXT_POLICY,
       action,
       usage: programme === "foundations" ? { ...programmeUsage, used: 1, remaining: 0, period: "day" } : programmeUsage.limited && programmeUsage.limit !== null
         ? { ...programmeUsage, used: usageClaim?.used || programmeUsage.used, remaining: Math.max(0, programmeUsage.limit - (usageClaim?.used || programmeUsage.used)) }

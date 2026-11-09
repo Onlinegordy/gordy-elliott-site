@@ -2,6 +2,7 @@ import { requireAdmin } from "@/lib/admin-auth";
 import { selectFoodsForPrompt } from "@/lib/food-library";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { NextRequest, NextResponse } from "next/server";
+import { assertAiSourceAllowed } from "@/lib/ai-source-policy.mjs";
 
 type GeneratedMealItem = {
   food_id: string;
@@ -150,6 +151,7 @@ export async function POST(req: NextRequest) {
 
   const { prompt } = await req.json();
   if (!prompt?.trim()) return NextResponse.json({ error: "Prompt required" }, { status: 400 });
+  try { assertAiSourceAllowed(prompt); } catch { return NextResponse.json({ error: "Imported Garmin data cannot be processed by AI." }, { status: 400 }); }
 
   const apiKey = process.env.ANTHROPIC_API_KEY;
   if (!apiKey) return NextResponse.json({ error: "AI not configured" }, { status: 500 });
