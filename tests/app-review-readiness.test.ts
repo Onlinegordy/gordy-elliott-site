@@ -54,7 +54,7 @@ test("prepared review notes contain no unverified provider or TestFlight claims"
 
 test("privacy policy identifies the controller, lawful bases, ICO right and Apple notification processor", async () => {
   const privacy = await readFile(privacyUrl, "utf8");
-  assert.match(privacy, /Gordy Elliott is the data controller/);
+  assert.match(privacy, /RENDEZVOUS 1 LIMITED, operating AT CAPACITY through Gordon Elliott, is the data controller/);
   assert.match(privacy, /processed to provide the coaching service/);
   assert.match(privacy, /explicit consent collected in the app/);
   assert.match(privacy, /Information Commissioner/);
