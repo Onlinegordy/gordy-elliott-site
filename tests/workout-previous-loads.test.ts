@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import test from "node:test";
-import { previousExerciseLoads, prefillPreviousWeights, hasCurrentWorkoutValues, forgetPreviousWeights, removeSetFromPreviousWeights, type HistoryItem, type HistoryLog } from "@/lib/workout-previous-loads";
+import { previousWeightsForRestoredDraft, previousExerciseLoads, prefillPreviousWeights, hasCurrentWorkoutValues, forgetPreviousWeights, removeSetFromPreviousWeights, type HistoryItem, type HistoryLog } from "@/lib/workout-previous-loads";
 import { buildNativeWorkoutLaunchPayload } from "@/lib/native-workout";
 import type { ExerciseSession } from "@/lib/types";
 
@@ -143,4 +143,38 @@ test("removing an extra row reindexes only surviving provenance, preserving type
  assert.deepEqual(result.item,{date:"2026-10-12",weights:{1:"60",3:"65",4:"75"}});
  assert.equal(hasCurrentWorkoutValues(sets.filter((_,i)=>i!==3).map((s,i)=>({...s,set_number:i+1})),result.item),true);
  assert.equal(removeSetFromPreviousWeights(previous,"missing",sets,3),previous);
+});
+
+test("actual workout page hydrates history after direct start and local draft resume, but never in edit mode or over saved sessions", async () => {
+  const { readFile } = await import("node:fs/promises");
+  const ts = await import("typescript");
+  const source = await readFile(new URL("../app/portal/exercise-plan/page.tsx", import.meta.url), "utf8");
+  const ast = ts.createSourceFile("page.tsx", source, ts.ScriptTarget.Latest, true, ts.ScriptKind.TSX);
+  let expression = "";
+  function visit(node: import("typescript").Node) {
+    if (ts.isVariableDeclaration(node) && node.name.getText(ast) === "needsPreviousLoads") expression = node.initializer!.getText(ast);
+    ts.forEachChild(node, visit);
+  }
+  visit(ast);
+  assert.ok(expression, "use the page's actual history gate");
+  const compiled = ts.transpileModule(`module.exports = (${expression});`, { compilerOptions: { target: ts.ScriptTarget.ES2022 } }).outputText;
+  const check = new Function("runnerOpen", "runnerMode", "sessionStartedAt", "resumedDraftKey", "previousLoadsKey", "dayLogs", "activeSession", `const module = {exports:false}; ${compiled}; return module.exports;`);
+  for (const [timer, resume] of [[null, null], [12345, null], [12345, "workout:2026-11-11"]]) {
+    assert.equal(check(true, "workout", timer, resume, "workout:2026-11-11", [], { id: "workout" }), true);
+    assert.equal(check(true, "edit", timer, resume, "workout:2026-11-11", [], { id: "workout" }), false);
+    assert.equal(check(false, "workout", timer, resume, "workout:2026-11-11", [], { id: "workout" }), false);
+    assert.equal(check(true, "workout", timer, resume, "workout:2026-11-11", [{ session_id: "workout" }], { id: "workout" }), false);
+  }
+});
+
+
+test("resumed explicit weights equal to history remain current work and keep swaps locked", () => {
+  const history = { item: { date: "2026-11-04", weights: { 1: "60", 2: "62.5" } } };
+  const restored = { item: [set(1, "60"), set(2)] };
+  const defaults = previousWeightsForRestoredDraft(restored, history);
+  assert.deepEqual(defaults.item.weights, { 2: "62.5" });
+  const drafts = prefillPreviousWeights(restored, defaults);
+  assert.deepEqual(drafts.item, [set(1, "60"), set(2, "62.5")]);
+  assert.equal(hasCurrentWorkoutValues(drafts.item, defaults.item), true);
+  assert.equal(hasCurrentWorkoutValues(prefillPreviousWeights({ item: [set(1), set(2)] }, history).item, history.item), false);
 });

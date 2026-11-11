@@ -48,10 +48,14 @@ export async function PATCH(
   if (!currentProfile) return NextResponse.json({ error: "Client not found" }, { status: 404 });
 
   // Only allow safe profile fields to be patched
-  const allowed = ["fitness_plans_enabled", "checkin_day", "checkin_form_id", "coach_notes", "start_weight", "programme_type", "onboarding_status", "date_of_birth", "sex", "cycle_tracking_enabled"];
+  const allowed = ["fitness_plans_enabled", "checkin_day", "checkin_form_id", "coach_notes", "start_weight", "programme_type", "onboarding_status", "date_of_birth", "sex", "cycle_tracking_enabled", "goals"];
   const updates: Record<string, unknown> = {};
   for (const key of allowed) {
     if (key in body) updates[key] = body[key];
+  }
+
+  if ("goals" in updates && updates.goals !== null && (typeof updates.goals !== "string" || updates.goals.length > 10000)) {
+    return NextResponse.json({ error: "Goals must be text up to 10,000 characters" }, { status: 400 });
   }
 
   if ("programme_type" in updates) {
@@ -119,7 +123,7 @@ export async function PATCH(
     .from("client_profiles")
     .update(updates)
     .eq("id", id)
-    .select("user_id, onboarding_status, activated_at")
+    .select("user_id, onboarding_status, activated_at, goals")
     .maybeSingle();
 
   if (error) {

@@ -62,6 +62,17 @@ export function previousExerciseLoads(targets: HistoryItem[], items: HistoryItem
   return result;
 }
 
+/** A restored nonempty weight may be explicitly entered, even if equal to history. */
+export function previousWeightsForRestoredDraft(drafts: Record<string, WorkoutSetData[]>, previous: PreviousExerciseLoads): PreviousExerciseLoads {
+  return Object.fromEntries(Object.entries(previous).flatMap(([id, load]) => {
+    const weights = Object.fromEntries(Object.entries(load.weights).filter(([number]) => {
+      const set = drafts[id]?.find(set => set.set_number === Number(number));
+      return set && set.weight === "" && !set.reps && !set.notes && !set.completed;
+    }));
+    return Object.keys(weights).length ? [[id, { ...load, weights }]] : [];
+  }));
+}
+
 /** Historical loads are editable starting values, never completed sets or copied reps. */
 export function prefillPreviousWeights(drafts: Record<string, WorkoutSetData[]>, previous: PreviousExerciseLoads): Record<string, WorkoutSetData[]> {
   return Object.fromEntries(Object.entries(drafts).map(([id, sets]) => [id, sets.map(set => {

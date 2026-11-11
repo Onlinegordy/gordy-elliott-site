@@ -12,7 +12,7 @@ import CyclingStatusText from "@/components/ui/CyclingStatusText";
 import { formatExercisePrescription, shouldUseSetLogging } from "@/lib/exercise-prescriptions";
 import { getExerciseDemoUrl } from "@/lib/exercise-demo";
 import { openExerciseDemo } from "@/lib/exercise-demo-client";
-import { prefillPreviousWeights, forgetPreviousWeights, removeSetFromPreviousWeights, type PreviousExerciseLoads } from "@/lib/workout-previous-loads";
+import { previousWeightsForRestoredDraft, prefillPreviousWeights, forgetPreviousWeights, removeSetFromPreviousWeights, type PreviousExerciseLoads } from "@/lib/workout-previous-loads";
 import { copyFirstWorkoutSetValues, removeExtraWorkoutSet, workoutSetHasValues, type WorkoutSetData } from "@/lib/workout-runner";
 import { NATIVE_WORKOUT_SYNCED_EVENT } from "@/lib/native-workout";
 import type { ClientExercisePlan, ExerciseSession, WeeklyTrainingAssignment, Exercise } from "@/lib/types";
@@ -248,7 +248,7 @@ export default function PortalExercisePlanPage() {
   const [sessionStartedAt, setSessionStartedAt] = useState<number | null>(null);
 
   // Draft inputs: exerciseItemId -> SetData[]
-  const [resumedDraftKey, setResumedDraftKey] = useState<string | null>(null);
+  const restoredDraftRef = useRef<{ key: string; sets: Record<string, SetData[]> } | null>(null);
   const [previousLoads, setPreviousLoads] = useState<{ key: string; data: PreviousExerciseLoads; error: string | null }>({ key: "", data: {}, error: null });
   const [draftSets, setDraftSets] = useState<Record<string, SetData[]>>({});
   const [performedExercises, setPerformedExercises] = useState<Record<string, Exercise>>({});
@@ -737,7 +737,9 @@ export default function PortalExercisePlanPage() {
   const dayLogs = allLogs.filter((l) => l.log_date === selectedDateStr);
   const isPast = !isToday(selectedDate) && !isFuture(selectedDate);
   const previousLoadsKey = activeSession ? `${activeSession.id}:${selectedDateStr}` : "";
-  const needsPreviousLoads = runnerOpen && runnerMode === "workout" && !sessionStartedAt && resumedDraftKey !== previousLoadsKey
+  // Starting the timer or restoring a draft must not bypass history hydration.
+  // prefillPreviousWeights only fills untouched blanks, preserving current work.
+  const needsPreviousLoads = runnerOpen && runnerMode === "workout"
     && !dayLogs.some(log => log.session_id === activeSession?.id);
   const previousLoadsReady = !needsPreviousLoads || previousLoads.key === previousLoadsKey;
   useEffect(() => {
@@ -750,8 +752,11 @@ export default function PortalExercisePlanPage() {
         const data = await response.json();
         if (!response.ok) throw new Error(data.error || "Previous weights could not load.");
         if (cancelled) return;
-        setDraftSets(drafts => prefillPreviousWeights(drafts, data.previousLoads || {}));
-        setPreviousLoads({ key: previousLoadsKey, data: data.previousLoads || {}, error: null });
+        const history = restoredDraftRef.current?.key === previousLoadsKey
+          ? previousWeightsForRestoredDraft(restoredDraftRef.current.sets, data.previousLoads || {})
+          : data.previousLoads || {};
+        setDraftSets(drafts => prefillPreviousWeights(drafts, history));
+        setPreviousLoads({ key: previousLoadsKey, data: history, error: null });
       })
       .catch(() => {
         if (!cancelled) setPreviousLoads({ key: previousLoadsKey, data: {}, error: "Previous weights couldn't load. You can still enter today's weights." });
@@ -815,7 +820,7 @@ export default function PortalExercisePlanPage() {
       setSelectedDate(date);
       setActiveSession(session);
       if (pointer.draftSets && typeof pointer.draftSets === "object") {
-        setResumedDraftKey(`${session.id}:${pointer.date}`);
+        restoredDraftRef.current = { key: `${session.id}:${pointer.date}`, sets: pointer.draftSets };
         setDraftSets(pointer.draftSets);
       } else {
         initDrafts(session);
@@ -904,7 +909,6 @@ export default function PortalExercisePlanPage() {
 
   function finishSessionTimer(sessionId: string, dateStr: string) {
     if (!plan?.id) return;
-    if (resumedDraftKey === `${sessionId}:${dateStr}`) setResumedDraftKey(null);
     setSessionStartedAt(null);
     try {
       window.localStorage.removeItem(sessionTimerKey(plan.id, sessionId, dateStr));
