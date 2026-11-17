@@ -1,3 +1,11 @@
 .playwright-cli/
 output/
 supabase/.temp/
+
+# Local development tools and internal working records
+/.omc/
+/.workflow/
+/buildroom/
+/docs/agent-notes/
+/.claude/
+/.codex/

@@ -2,13 +2,13 @@
 >
 > A deployed fictional report with screenshot completed submission, deduplicated receipt, authenticated Kevin admin queue read, private JPEG preview, notification delivery-state persistence and closure with owner/notes/resolution. Resend accepted the email to kevin@flowstatesystems.ai; inbox delivery has not been independently confirmed. A repeat notification run sent nothing. The public customer URL was inspected in the in-app browser signed out, and its owned tab was closed and absence verified. No physical iOS device was exercised.
 >
-> Vercel checks for pending notification emails every five minutes. Codex heartbeat `gordy-app-snag-triage` is active every fifteen minutes and follows `/Users/kevinharkin/flowstate-ops/gordy-support/runbook.md`. It investigates and prepares tested fixes; production fixes remain a separate release decision. Local investigation needs this Mac and CodexDev available; server intake/email do not. Reports are treated as untrusted customer data, not agent instructions.
+> Vercel checks for pending notification emails every five minutes. Support investigation and production releases are separate operational steps. Reports are treated as untrusted customer data.
 >
 > The first candidate failed on a missing Sharp/libvips shared library. Explicit route tracing plus deferred guarded image import fixed the deployed fault. Nine focused tests, TypeScript and both notification and packaging reviews pass. The prior implementation’s 263 contract checks remain supporting evidence. The previous localhost demo no longer has a listener on 3147. No live app-store release or Android build was performed.
 
 # AT CAPACITY client snag intake
 
-Prepared 5 October 2026. Implemented on `codex/client-snag-intake`, based on `origin/main` revision `bf364efc33146e6eee0c464b0a61359a690bbcb1`. Worktree: `/Users/kevinharkin/Codex-Worktrees/gordy-client-snag-intake` (external CodexDev). The canonical dirty checkout is untouched.
+Prepared 5 October 2026. Implemented on `codex/client-snag-intake`, based on `origin/main` revision `bf364efc33146e6eee0c464b0a61359a690bbcb1`.
 
 ## What is ready
 
@@ -35,16 +35,16 @@ The real public form at `/support/report` also renders locally. With the dummy c
 - `npm run build`: passed with dummy local Supabase settings; no external backend request or credentials required.
 - Browser: fictional submission/receipt and queue assignment/priority/retest notes inspected at 390×844 and 1440×1000; no horizontal overflow. Public form opened signed out. A Chrome extension added `data-sharkid` attributes before hydration, producing one extension-related React warning; it was not suppressed. The first failure-state screenshot predates the corrected dev host comparison; direct HTTP retest confirms a valid local Origin now reaches the intended 503 save fallback.
 - Temporary production server smoke: `/support/report` returned 200, `/support/demo` returned 404 even with SUPPORT_DEMO=true, and `/api/admin/support` returned 401. The server was terminated and port 3148 absence verified.
-- Final structured review: `/Users/kevinharkin/.codex/skills/autoreview/scripts/autoreview --mode local --prompt-file /tmp/gordy-support-review-context.md` exited 0 with no actionable findings. Accepted fixes covered server filtering/pagination, post-save refresh including closure/reopening, locking edits during save, pre-image request limiting and keeping the fictional demo entirely in memory.
+- Final code review found no actionable issues. Accepted fixes covered server filtering/pagination, post-save refresh including closure/reopening, locking edits during save, pre-image request limiting and keeping the fictional demo entirely in memory.
 - Signed-out admin queue GET and PATCH return 401. Anonymous/authenticated roles cannot read report rows or invoke either RPC; neither can access the private screenshot bucket, even with a synthetic legacy permissive policy.
 
-Screenshots and logs live outside Git at `/Volumes/CodexDev/Projects/flowstate-monday-2026-10-05/artifacts/gordy-support/`.
+Verification screenshots and logs are retained separately from the application repository.
 
 ## Coordinated release sequence
 
 1. Review this branch and choose the named Flowstate triage/holiday-cover owner. Verify existing authorised admin access; this task provisions no new admin account.
 2. Apply only `supabase/migrations/20261005093000_support_reports.sql` to the verified Gordy Supabase project `yeflmlcpqdfsfjlxofqy`. Confirm current migration history first. This has NOT been applied to production.
-3. Deploy the reviewed web revision to Gordy's `gordy-elliott-site` project and verify the exact `app.onlinegordy.com` alias/revision. Do not deploy from the dirty canonical checkout.
+3. Deploy the reviewed web revision to Gordy's `gordy-elliott-site` project and verify the exact `app.onlinegordy.com` alias/revision. Deploy from the reviewed clean checkout.
 4. With a permitted fictional report, check durable submission → receipt → admin queue → owner/notes → retest/resolution; verify anonymous/client isolation and private screenshots. Use a disposable test identity/contact; avoid altering any real client account or content.
 5. Open Settings → Report an app problem on the actual distributed iOS build; check same-host navigation, keyboard, screenshot picker and return to app. No Swift/binary changes were made here. Store approval/manual-release is a separate launch task.
 6. Once verified, use the client instructions below and share the form link. This task has sent no instructions or notifications.
@@ -57,6 +57,4 @@ The quotas assume the current Vercel deployment, where client forwarding headers
 
 ## Remaining limits
 
-Production schema/deployment, a live fictional report walkthrough, actual-device navigation and holiday-cover ownership are still open. A final post-review browser replay could not start because foreground ownership belonged to task `01a07de4-1477-7b31-b19a-ce03ce5ae3bb` for Hyperfocus reporting; no takeover or retry loop was attempted. Earlier responsive checks and final API/SQL/build checks are recorded separately. Automated notifications are not configured; the owner needs to check the queue directly during launch. The inspected source contains no Android build; Google Play onboarding and Android implementation are separate.
-
-Runtime handover: the localhost development demo is currently retained for main-agent/user review, PID 72393 on port 3147, unified exec session 27312. Stop it after review and verify port 3147 has no listener. The one owned Chrome QA tab (1084869004) was closed, its absence verified, temporary viewport reset and foreground ownership released. No headless browser or new Chrome process was started. The temporary production smoke server on 3148 was stopped and its listener absence verified.
+Production schema/deployment, a live fictional report walkthrough, actual-device navigation and holiday-cover ownership are still open. Earlier responsive checks and final API/SQL/build checks are recorded separately. Automated notifications are not configured; the owner needs to check the queue directly during launch. The inspected source contains no Android build; Google Play onboarding and Android implementation are separate.

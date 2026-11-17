@@ -20,3 +20,11 @@ android/app/google-services.json
 supabase/.temp/
 
 android/.kotlin/
+
+# Local development tools and internal working records
+/.omc/
+/.workflow/
+/buildroom/
+/docs/agent-notes/
+/.claude/
+/.codex/
