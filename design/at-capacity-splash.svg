@@ -1,9 +1,0 @@
-<svg xmlns="http://www.w3.org/2000/svg" width="2732" height="2732" viewBox="0 0 2732 2732">
-  <rect width="2732" height="2732" fill="#0A0A0A"/>
-  <text x="1366" y="1360" text-anchor="middle" font-family="Arial Black, Arial, sans-serif" font-size="390" font-weight="900" letter-spacing="-12">
-    <tspan fill="#E040D0">AT</tspan><tspan fill="#FFFFFF"> CAPACITY</tspan>
-  </text>
-  <rect x="816" y="1490" width="1100" height="42" rx="21" fill="#24242A"/>
-  <rect x="816" y="1490" width="748" height="42" rx="21" fill="#E040D0"/>
-  <rect x="1782" y="1490" width="134" height="42" rx="21" fill="#FFFFFF"/>
-</svg>

@@ -9,3 +9,9 @@ supabase/.temp/
 /docs/agent-notes/
 /.claude/
 /.codex/
+
+# Documentation and source-design material are not deployment inputs.
+/docs/
+/LAUNCH.md
+/design/
+/data/brain/*-review.csv

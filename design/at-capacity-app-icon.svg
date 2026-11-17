@@ -1,9 +1,0 @@
-<svg xmlns="http://www.w3.org/2000/svg" width="1024" height="1024" viewBox="0 0 1024 1024">
-  <rect width="1024" height="1024" fill="#0A0A0A"/>
-  <text x="512" y="535" text-anchor="middle" font-family="Arial Black, Arial, sans-serif" font-size="310" font-weight="900" letter-spacing="-24">
-    <tspan fill="#E040D0">AT</tspan><tspan fill="#FFFFFF">C</tspan>
-  </text>
-  <rect x="218" y="624" width="588" height="50" rx="25" fill="#24242A"/>
-  <rect x="218" y="624" width="400" height="50" rx="25" fill="#E040D0"/>
-  <rect x="734" y="624" width="72" height="50" rx="25" fill="#FFFFFF"/>
-</svg>

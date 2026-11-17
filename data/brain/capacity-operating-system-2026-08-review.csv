@@ -1,8 +1,0 @@
-id,platform_flag,reviewer,reviewed_at,notes
-capacity-voice-2026-08,none,internal,2026-08-17,Distilled voice guidance with personal details removed
-capacity-hierarchy-2026-08,none,internal,2026-08-17,Client-safe framework guidance
-capacity-four-pillars-2026-08,none,internal,2026-08-17,Client-safe performance guidance with medical boundary
-capacity-early-proof-2026-08,none,internal,2026-08-17,Client-safe fourteen-day win guidance
-capacity-client-ai-boundary-2026-08,none,internal,2026-08-17,Explicit client assistant limits
-capacity-admin-decisions-2026-08,none,internal,2026-08-17,Admin-only operations guidance
-capacity-admin-brief-2026-08,none,internal,2026-08-17,Admin-only triage and privacy guidance
