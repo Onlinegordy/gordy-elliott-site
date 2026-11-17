@@ -1,6 +1,6 @@
 # AT CAPACITY App Store Metadata
 
-Prepared for the first iOS release and reconciled against the live Gordy-owned App Store Connect record on 26 August 2026. Version 1.0 remains Prepare for Submission.
+Maintained listing copy and review notes. Confirm feature claims against the selected binary and hosted portal before each submission; release version/build comes from `config/app-identity.json`.
 
 ## Product fields
 
@@ -15,7 +15,6 @@ Prepared for the first iOS release and reconciled against the live Gordy-owned A
 | Marketing URL | https://app.onlinegordy.com |
 | Privacy Policy URL | https://app.onlinegordy.com/privacy |
 | Privacy Choices URL | https://app.onlinegordy.com/privacy |
-| Version | 1.0 |
 | Release | Manually release after approval |
 
 `https://app.onlinegordy.com` is Gordy's canonical production domain. Use these URLs in App Store Connect and the Google OAuth verification submission.
@@ -63,14 +62,7 @@ AT CAPACITY is sign-in only. Coaching enrolment and payment happen outside the a
 
 ## Review contact
 
-| Field | Value |
-| --- | --- |
-| First name | Kevin |
-| Last name | Harkin |
-| Email | kevin@flowstatesystems.ai |
-| Phone | +447749461202 |
-
-Review credentials are stored only in App Store Connect. Do not put the password in source control or submission documents.
+Maintain the release contact and fictional reviewer credentials in App Store Connect, outside source control.
 
 ## Review notes
 
@@ -97,5 +89,5 @@ Submission hold: do not copy these notes into App Store Connect or submit the ap
 - Regulated medical device: **No.** The app provides fitness coaching and explicitly avoids diagnosis or treatment claims.
 - Sign-in required: **Yes.** Supply the verified Demo Client credentials already held in App Store Connect.
 
-## Health integration candidate,30 October2026
-AT CAPACITY1.0.2(13) adds optional Apple Health through TerraHealth. Read access is requested only after the user accepts the health-data notice and taps Connect; categories are activity, steps, calories, heart rate, resting heart rate, HRV and sleep. The SDK requires an update-purpose string but this integration does not write HealthKit data. Review requires a physical iPhone with populated Health data, permission denial/re-enable and background-delivery checks. Reinstall/new device creates a distinct Terra user mapped to the same client reference. No App Store submission authorised.
+## Apple Health release notes
+For a binary that includes the optional Apple Health integration through TerraHealth, update the review notes to match the enabled feature. Read access is requested only after the user accepts the health-data notice and taps Connect; categories are activity, steps, calories, heart rate, resting heart rate, HRV and sleep. The SDK requires an update-purpose string but this integration does not write HealthKit data. Review requires a physical iPhone with populated Health data, permission denial/re-enable and background-delivery checks. Reinstall/new device creates a distinct Terra user mapped to the same client reference.

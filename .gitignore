@@ -28,3 +28,10 @@ android/.kotlin/
 /docs/agent-notes/
 /.claude/
 /.codex/
+
+# Keep only maintained release inputs in docs; working notes stay outside Git.
+/docs/*
+!/docs/android-release.md
+!/docs/app-store-metadata.md
+/design/
+/data/brain/*-review.csv
