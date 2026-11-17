@@ -162,7 +162,7 @@ Code-level QA for the Apr 21 late sprint is done (see roadmap for verdicts). Liv
 
 ## 7. Quick reference — where things live
 
-- Roadmap HTML: `/Users/kevinharkin/Documents/Playground/gordy-portal-roadmap.html`
+- App roadmap: `docs/app-store-roadmap.md`
 - Supabase project: linked in `supabase/config.toml`
 - Vercel project: `gordy-elliott-site` (see Vercel dashboard)
 - Push keys: set in Vercel env; regenerate via `npx web-push generate-vapid-keys` if ever compromised

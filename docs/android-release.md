@@ -4,7 +4,7 @@ Package: `com.gordyelliott.atcapacity`. Initial Android version: `1.0.0` / code 
 
 ## Build storage
 
-Run from the external worktree `/Users/kevinharkin/Codex-Worktrees/gordy-android-release` (resolves onto CodexDev). `scripts/android-environment.mjs` validates the disk and places all heavy storage there; it never repurposes HOME or changes global shell settings.
+Run from a repository checkout on the configured external build disk. `scripts/android-environment.mjs` validates the disk and places all heavy storage there; it never repurposes HOME or changes global shell settings.
 
 | Content | Location |
 | --- | --- |
