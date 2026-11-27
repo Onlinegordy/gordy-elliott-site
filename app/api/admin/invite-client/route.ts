@@ -117,7 +117,7 @@ export async function POST(request: Request) {
   await admin.from("notifications").insert({
     user_id: newUser.user.id,
     title: programme_type === "boardroom" ? "Welcome to CAPACITY BOARDROOM" : "Welcome to AT CAPACITY",
-    message: `Welcome ${normalizedName.split(" ")[0]}! Set your password and complete the consultation ${programme_type === "boardroom" ? "so Gordy can prepare your coaching plan" : "so your coach can prepare your plan"}.`,
+    message: `Welcome ${normalizedName.split(" ")[0]}! Set your password and complete the consultation${programme_type === "boardroom" ? " so Gordy can prepare your coaching plan." : ". Your plan gets built from your consultation."}`,
     link: "/portal/consultation",
   });
 
