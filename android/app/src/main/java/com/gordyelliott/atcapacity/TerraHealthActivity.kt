@@ -17,7 +17,14 @@ class TerraHealthActivity: AppCompatActivity() {
    if(error!=null){runOnUiThread{finish()};return@instance}
    runOnUiThread {
     manager.initConnection(connection=Connections.HEALTH_CONNECT, token=token, context=this,
-     customPermissions=setOf(CustomPermissions.ACTIVITY_SUMMARY,CustomPermissions.STEPS,CustomPermissions.HEART_RATE,CustomPermissions.RESTING_HEART_RATE,CustomPermissions.HEART_RATE_VARIABILITY,CustomPermissions.SLEEP_ANALYSIS,CustomPermissions.CALORIES),schedulerOn=true,startIntent=null) {success,connectionError ->
+     customPermissions=setOf(
+      CustomPermissions.WORKOUT_TYPE,
+      CustomPermissions.STEPS,
+      CustomPermissions.RESTING_HEART_RATE,
+      CustomPermissions.HEART_RATE_VARIABILITY,
+      CustomPermissions.SLEEP_ANALYSIS,
+      CustomPermissions.CALORIES
+     ),schedulerOn=true,startIntent=null) {success,connectionError ->
       val id=manager.getUserId(Connections.HEALTH_CONNECT)
       runOnUiThread {if(success&&connectionError==null&&id!=null)setResult(Activity.RESULT_OK,Intent().putExtra("userId",id));finish()}
     }
