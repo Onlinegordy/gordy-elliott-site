@@ -42,7 +42,7 @@ export async function sendWelcomeEmail(to: string, name: string, setupUrl: strin
     html: wrap(`
       <h2 style="margin: 0 0 8px; font-size: 20px; color: #111;">Welcome ${escapeHtml(firstName)},</h2>
       <p style="color: #555; font-size: 15px; line-height: 1.6; margin: 0 0 24px;">
-        Your ${programmeName} account is ready to set up. Choose your password and complete the consultation; ${programme === "boardroom" ? "Gordy will then prepare your coaching plan and switch on full access." : "your plan gets built from your consultation, then full access switches on."}
+        Your ${programmeName} account is ready to set up. ${programme === "boardroom" ? "Choose your password and complete the consultation; Gordy will then prepare your coaching plan and switch on full access." : "Choose your password, then complete the consultation. Your plan gets built from your consultation and full access switches on after that."}
       </p>
       ${button(setupUrl, "Set Up Your Account")}
     `),
