@@ -11,6 +11,25 @@ const nextConfig: NextConfig = {
       "./node_modules/@img/sharp-libvips-linux-x64/**/*",
     ],
   },
+  // AT CAPACITY app sign up page (/join) lives in its own Vercel project,
+  // atcapacity-app-join. Served here so the public address is app.onlinegordy.com/join.
+  // The page asks for /style.css, /config.js and /site.js at the root; those are
+  // fallback rewrites so they only apply when this app has no file or route of that name.
+  async rewrites() {
+    const JOIN = "https://atcapacity-app-join.vercel.app";
+    return {
+      beforeFiles: [],
+      afterFiles: [
+        { source: "/join", destination: `${JOIN}/join` },
+        { source: "/join/:path*", destination: `${JOIN}/join/:path*` },
+      ],
+      fallback: [
+        { source: "/style.css", destination: `${JOIN}/style.css` },
+        { source: "/config.js", destination: `${JOIN}/config.js` },
+        { source: "/site.js", destination: `${JOIN}/site.js` },
+      ],
+    };
+  },
   async headers() {
     return [
       {
